@@ -5,6 +5,7 @@ if (!empty($_GET['page']))
 {
 	$page = $_GET["page"];
 }
+$page = rtrim($page, '/');
 /* make sure page isn't bad*/
 
 $baseXmlGen = $core->getPageXml($page, "core/xml/errors/404.xml");
