@@ -8,6 +8,7 @@
 	<body>
 		<?php require_once($core->getModule($layoutFileGen,"header")); ?>
 		<div class="mainContent" >
+			<!-- Default content -->
 			<?php require_once($core->getContent($baseXmlGen)); ?>
 		</div>
 		<?php require_once($core->getModule($layoutFileGen,"footer")); ?>

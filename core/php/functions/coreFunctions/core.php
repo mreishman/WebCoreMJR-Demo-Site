@@ -82,7 +82,7 @@ class core
 		return $arrayOfFiles;
 	}
 
-	public function getContent($layoutFileGen)
+	public function getContent($layoutFileGen, $contentType = "content")
 	{
 		//js files
 		$listOfJsFiles = $this->generateJsLinks($layoutFileGen);
@@ -95,7 +95,7 @@ class core
 			echo "<link rel=\"stylesheet\" type=\"text/css\" href=\"/".$fileData["fileName"]."?v=".$fileData["time"]."\">";
 		}
 		//return main file path
-		return $this->getFile("content/".$layoutFileGen->content->group."/".$layoutFileGen->content->file.".".$layoutFileGen->content->type,"content/base/404.html");
+		return $this->getFile("content/".$layoutFileGen->$contentType->group."/".$layoutFileGen->$contentType->file.".".$layoutFileGen->$contentType->type,"content/base/404.html");
 	}
 
 	public function generateCssLinks($layoutFileGen)
@@ -146,5 +146,32 @@ class core
 	public function getTemplateXml($page, $default = false)
 	{
 		return simplexml_load_file($this->getFile("xml/templates/".$page.".xml", $default));
+	}
+
+	public function ifCheckArray($object, $array)
+	{
+		foreach ($array as $value)
+		{
+			$testObj = $object->$value;
+			if(gettype($testObj) !== "object")
+			{
+				return null;
+			}
+			$object = $testObj;
+		}
+		return $object;
+	}
+
+	public function getSetting($arrOfObjects, $settingPath, $default)
+	{
+		foreach ($arrOfObjects as $xmlObjectCheck)
+		{
+			$value = $this->ifCheckArray($xmlObjectCheck, $settingPath);
+			if($value !== null)
+			{
+				return $value;
+			}
+		}
+		return;
 	}
 }

@@ -51,18 +51,27 @@ class header
 		return $evenNewerNavArray;
 	}
 
-	public function generateNavigationArray()
+	public function generateNavigationArray($filters = array())
 	{
-		return $this->generateNavigationArrayWithParams(0);
+		return $this->generateNavigationArrayWithParams(0, $filters);
 	}
 
-	public function generateSitemap()
+	public function generateSitemap($filters = array())
 	{
-		return $this->generateNavigationArrayWithParams(-1);
+		return $this->generateNavigationArrayWithParams(-1, $filters);
 	}
 
-	private function generateNavigationArrayWithParams($minCurrent)
+	private function generateNavigationArrayWithParams($minCurrent, $filters)
 	{
+		$filePathDepth = 1;
+		if(!empty($filters))
+		{
+			if(isset($filters["filePathDepth"]))
+			{
+				$filePathDepth = intval($filters["filePathDepth"]);
+			}
+		}
+		$filePathDepth++;
 		$currentDir = realpath(__DIR__ . '/../../../..')."/";
 		$xmlDir = $currentDir."core/xml/content/";
 		if(is_dir($currentDir."local/xml/content/"))
@@ -76,6 +85,16 @@ class header
 			$arrayOfFiles[$currentFileKey]["position"] = intval($xmlLayout->menu->position);
 			$arrayOfFiles[$currentFileKey]["name"] = (string)$xmlLayout->menu->name;
 			$arrayOfFiles[$currentFileKey]["key"] = (string)$xmlLayout->menu->key;
+			$arrayOfFiles[$currentFileKey]["description"] = "";
+			if($xmlLayout->menu->description)
+			{
+				$arrayOfFiles[$currentFileKey]["description"] = (string)$xmlLayout->menu->description;
+			}
+			$arrayOfFiles[$currentFileKey]["image"] = "";
+			if($xmlLayout->menu->image)
+			{
+				$arrayOfFiles[$currentFileKey]["image"] = (string)$xmlLayout->menu->image;
+			}
 			$current = 0;
 			$currentURI = "$_SERVER[REQUEST_URI]";
 			if("$_SERVER[REQUEST_URI]" === "/")
@@ -94,6 +113,19 @@ class header
 			if($AOFvalue["position"] <= $minCurrent)
 			{
 				continue; //skip if position is 0
+			}
+			//check for filters
+			if(!empty($filters))
+			{
+				//@TODO allow for exclude file paths
+				//@TODO make array for more than one include
+				if(isset($filters["include"]))
+				{
+					if(!(strpos($AOFvalue["path"], "/".$filters["include"]) === 0 && count(explode("/", $AOFvalue["path"])) <= $filePathDepth))
+					{
+						continue;
+					}
+				}
 			}
 			$justPath = substr($AOFvalue["fileNamePlusPath"], 0, strrpos($AOFvalue["fileNamePlusPath"], '/'));
 			$keys = array($AOFvalue["fileName"]);
@@ -198,6 +230,85 @@ class header
 					$classText = $classToAdd;
 				}
 				$htmlToReturn .= "<li><a ".$classText." href=\"".explode(".xml", $value["fileNamePlusPath"])[0]."\" >".$value["name"]."</a></li>";
+			}
+		}
+		$htmlToReturn .= "</ul>";
+		return $htmlToReturn;
+	}
+
+	public function generatePageNavUL($navArray, $htmlToReturn = "")
+	{
+		//@TODO add grid / list view options
+		//@TODO add more than one layer support
+		$htmlToReturn .= "<ul>";
+		foreach ($navArray as $key => $value)
+		{
+			$classText = "";
+			$addClassText = false;
+			if(isset($value["files"]))
+			{
+				if(!empty($value["files"]))
+				{
+					$current = $this->findIfSubCurrent($value["files"]);
+					$classToAdd = " class=\"";
+					if($current || (isset($value["current"]) && $value["current"] === 1))
+					{
+						$classToAdd .= " active ";
+						$addClassText = true;
+					}
+					$name = "";
+					if(isset($value["name"]))
+					{
+						$name = $value["name"];
+					}
+					else
+					{
+						//no name set, grab from folder
+						foreach ($value["files"] as $file)
+						{
+							$name = $file["path"];
+							if(strpos($name, "/") === 0)
+							{
+								$name = ltrim($name, '/');
+							}
+							$name = ucfirst($name);
+							break;
+						}
+					}
+					$classToAdd .= " \"";
+					if($addClassText)
+					{
+						$classText = $classToAdd;
+					}
+					//@TODO add option for different size
+					$htmlToReturn .= "<li><h1 ".$classText.">".$name."</h1>".$this->generatePageNavUL($value["files"])."</li>";
+				}
+			}
+			else
+			{
+				$classToAdd = " class=\"";
+				if($value["current"] === 1)
+				{
+					$classToAdd .= " active ";
+					$addClassText = true;
+				}
+				$classToAdd .= " \"";
+				if($addClassText)
+				{
+					$classText = $classToAdd;
+				}
+				$description = "";
+				$image = "";
+				if(isset($value["description"]) && $value["description"] !== "")
+				{
+					$description = $value["description"];
+				}
+				if(isset($value["image"]) && $value["image"] !== "")
+				{
+					$image = "<img align=\"left\" src=\"".$value["image"]."\">";
+				}
+				//@TODO add option for different size
+				$htmlToReturn .= "<li><a ".$classText." href=\"".explode(".xml", $value["fileNamePlusPath"])[0]."\" >".$image."<h2>".$value["name"]."</h2><p>".$description."</p></a></li>";
 			}
 		}
 		$htmlToReturn .= "</ul>";
